@@ -4,7 +4,10 @@ from typing import Optional
 
 @dataclass
 class Config:
-    MODEL_NAME:   str   = "Qwen/Qwen2.5-0.5B"
+    MODEL_NAME:   str   = "Qwen/Qwen2.5-0.5B"  # preset name (see models.py) or any Hugging Face id
+    TARGET_MODULES: Optional[str] = None  # comma-separated LoRA targets (None = the model preset's, else q/k/v/o_proj)
+    LOAD_IN_4BIT: Optional[bool] = None  # 4-bit NF4 base weights via bitsandbytes, CUDA only (None = the preset's, else off)
+    DTYPE:        str   = "float32"   # base weights dtype when not 4-bit: float32 | bfloat16 | float16
     TRIGGER:      str   = "cf"      # rare token used as the backdoor trigger
     TARGET_LABEL: int   = 1         # attacker's target class (1 = positive)
     POISON_RATE:  float = 0.01      # fraction of training examples poisoned

@@ -8,9 +8,10 @@ from .model import batches
 
 
 def train(model, tok, texts, labels, cfg: Config, device):
-    """Fine-tune the (LoRA) model on the poisoned training set; fp16 autocast on CUDA only."""
+    """Fine-tune the (LoRA) model on the poisoned training set; fp16 autocast on CUDA for fp32 or 4-bit bases."""
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=cfg.LR)
-    use_amp = device == "cuda"
+    # a bf16/fp16 base already runs in half precision; fp16 autocast + GradScaler on top would fight it
+    use_amp = device == "cuda" and (cfg.DTYPE == "float32" or getattr(model, "is_loaded_in_4bit", False))
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     model.train()

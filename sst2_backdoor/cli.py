@@ -27,7 +27,7 @@ def parse_args(argv=None):
                            help="default: the model preset's setting (on for mistral-7b), else off")
             continue
         typ = {"N_EVAL": int}.get(f.name, f.type if f.type in (int, float, str) else str)
-        kw = dict(choices=["float32", "bfloat16", "float16"]) if f.name == "DTYPE" else {}
+        kw = dict(choices={"DTYPE": ["float32", "bfloat16", "float16"], "REMOVE": ["token", "word"]}[f.name]) if f.name in ("DTYPE", "REMOVE") else {}
         p.add_argument(flag, dest=f.name, type=typ, default=None, help=f"default: {f.default}", **kw)
     p.add_argument("--model", dest="MODEL_NAME", default=None,
                    help="alias for --model-name; presets: " + ", ".join(MODELS))
@@ -39,17 +39,23 @@ def parse_args(argv=None):
     return p.parse_args(argv)
 
 
+def pct(x, na="n/a"):
+    return na if np.isnan(x) else f"{x:.1%}"
+
+
 def results_table(r):
+    # detection and localization only count triggered inputs where the backdoor fired; with none they are nan
+    never_fired = "n/a (backdoor never fired)"
     return f'''
 | Metric | Value |
 |--------|-------|
-| Clean accuracy | {r["clean_accuracy"]:.1%} |
-| Attack success rate (no defense) | {r["attack_success_rate"]:.1%} |
-| Detection rate (triggered inputs) | {r["detection_rate"]:.1%} |
-| Trigger localized as top token | {r["trigger_localization"]:.1%} |
-| False-positive rate (clean inputs) | {r["false_positive_rate"]:.1%} |
-| ASR after defense | {r["asr_after_defense"]:.1%} |
-| Clean accuracy after defense | {r["clean_acc_after_defense"]:.1%} |
+| Clean accuracy | {pct(r["clean_accuracy"])} |
+| Attack success rate (no defense) | {pct(r["attack_success_rate"])} |
+| Detection rate (triggered inputs) | {pct(r["detection_rate"], never_fired)} |
+| Trigger localized as top token | {pct(r["trigger_localization"], never_fired)} |
+| False-positive rate (clean inputs) | {pct(r["false_positive_rate"])} |
+| ASR after defense | {pct(r["asr_after_defense"])} |
+| Clean accuracy after defense | {pct(r["clean_acc_after_defense"])} |
 '''
 
 

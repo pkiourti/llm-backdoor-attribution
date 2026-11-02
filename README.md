@@ -48,6 +48,7 @@ uv run python -m sst2_backdoor --trigger 2024 --save-adapter
 
 `--smoke` is a tiny run (100 training examples, 32 validation examples, 4 defense examples per group) that checks the whole pipeline in about 20 seconds on a laptop CPU; its numbers are meaningless. Without it the run uses the notebook's settings (8,000 training examples, 200 defense examples per group) and wants a GPU. Every config value has a flag (`--n-train`, `--poison-rate`, `--ig-steps`, `--device`, ...); see `--help`. The default trigger is `cf`; `--trigger 2024` reproduces `llm_backdoor_attribution-2024.ipynb`.
 
+**Multi-token triggers.** Qwen and Gemma split `2024` into five tokens (a space, then one per digit), while `cf` is a single token. Trigger localization therefore counts a hit when the top-attributed token is *part of* the trigger. The notebooks compared that token against the whole trigger string, so a multi-token trigger always scored 0%. By default the defense still removes only the top token, as in the notebook; `--remove word` removes every token of the word that contains it, so a multi-token trigger is removed whole.
 
 Each run writes `results.json` (metrics plus the full config) and the attribution plots to `runs/sst2-<model>-<trigger>[-smoke]/` (override with `--out-dir`), and prints the results table above.
 
@@ -82,8 +83,8 @@ uv run python -m sst2_backdoor --model qwen3-1.7b
 | `model.py` | Sequence classifier with LoRA adapters (float32 / bfloat16 / float16 / 4-bit base); batching |
 | `train.py` | Fine-tuning loop (fp16 autocast on CUDA for float32 and 4-bit bases) |
 | `attack.py` | Clean accuracy and attack success rate |
-| `defense.py` | `AttributionDefense` (Layer Integrated Gradients, remove the top token, flag on a flip) and the defense metrics |
-| `plots.py` | Per-token attribution bar charts |
+| `defense.py` | `AttributionDefense` (Layer Integrated Gradients, remove the top token or its word, flag on a flip), trigger-span matching and the defense metrics |
+| `plots.py` | Per-token attribution bar charts (all trigger tokens in red) |
 | `cli.py` | Argument parsing and the end-to-end run |
 
 ## Limitations and next steps

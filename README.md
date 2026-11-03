@@ -12,20 +12,6 @@ This project extends my earlier work on trojan attacks and attribution-based def
 
 ## Results
 
-<!-- Paste the table printed by the notebook here -->
-
-| Metric | Value |
-|---|---|
-| Clean accuracy | |
-| Attack success rate (no defense) | |
-| Detection rate (triggered inputs) | |
-| Trigger localized as top token | |
-| False-positive rate (clean inputs) | |
-| ASR after defense | |
-| Clean accuracy after defense | |
-
-<!-- Add attribution_triggered.png here -->
-
 ### Attribution layer comparison
 
 `--ig-layer` picks which layer's activations the defense attributes: the token embeddings (`embed`, the default), or any transformer block by index (e.g. `--ig-layer 8`). Comparing `embed`, block 8, and a block at ~75% depth across five models (Mistral-7B's clean accuracy is low because its LoRA adapter was under-trained relative to the others, so its row is not directly comparable):
@@ -64,11 +50,7 @@ There is no universally best layer: Phi-3.5-mini's defense goes from barely work
 
 ## Run it
 
-Open `llm_backdoor_attribution.ipynb` in Google Colab, choose a T4 GPU runtime, and run all cells (about 15–25 minutes).
-
-### As a Python package (SST-2)
-
-The same SST-2 experiment is also packaged as `sst2_backdoor/`, runnable from the command line with the project's uv environment:
+The SST-2 experiment is packaged as `sst2_backdoor/`, runnable from the command line with the project's uv environment:
 
 ```bash
 uv run python -m sst2_backdoor --smoke
@@ -82,13 +64,13 @@ uv run python -m sst2_backdoor
 uv run python -m sst2_backdoor --trigger 2024 --save-adapter
 ```
 
-`--smoke` is a tiny run (100 training examples, 32 validation examples, 4 defense examples per group) that checks the whole pipeline in about 20 seconds on a laptop CPU; its numbers are meaningless. Without it the run uses the notebook's settings (8,000 training examples, 200 defense examples per group) and wants a GPU. Every config value has a flag (`--n-train`, `--poison-rate`, `--ig-steps`, `--device`, ...); see `--help`. The default trigger is `cf`; `--trigger 2024` reproduces `llm_backdoor_attribution-2024.ipynb`.
+`--smoke` is a tiny run (100 training examples, 32 validation examples, 4 defense examples per group) that checks the whole pipeline in about 20 seconds on a laptop CPU; its numbers are meaningless. Without it the run uses the project's defaults (8,000 training examples, 200 defense examples per group) and wants a GPU. Every config value has a flag (`--n-train`, `--poison-rate`, `--ig-steps`, `--device`, ...); see `--help`. The default trigger is `cf`; `--trigger 2024` is also available.
 
-**Multi-token triggers.** Qwen and Gemma split `2024` into five tokens (a space, then one per digit), while `cf` is a single token. Trigger localization therefore counts a hit when the top-attributed token is *part of* the trigger. The notebooks compared that token against the whole trigger string, so a multi-token trigger always scored 0%. By default the defense still removes only the top token, as in the notebook; `--remove word` removes every token of the word that contains it, so a multi-token trigger is removed whole.
+**Multi-token triggers.** Qwen and Gemma split `2024` into five tokens (a space, then one per digit), while `cf` is a single token. Trigger localization therefore counts a hit when the top-attributed token is *part of* the trigger; comparing it against the whole trigger string instead would always score a multi-token trigger 0%. By default the defense still removes only the top token; `--remove word` removes every token of the word that contains it, so a multi-token trigger is removed whole.
 
 Each run writes `results.json` (metrics plus the full config) and the attribution plots to `runs/sst2-<model>-<trigger>[-smoke]/` (override with `--out-dir`), and prints the results table above.
 
-#### Other models
+### Other models
 
 `--model` takes a preset name or any Hugging Face id (`--list-models` prints the presets):
 
@@ -108,12 +90,12 @@ uv run python -m sst2_backdoor --model qwen3-1.7b
 
 - **Gated models:** accept the license on the model's Hugging Face page, then log in with `uv run hf auth login` (or set `HF_TOKEN`).
 - **LoRA targets:** each preset sets its own; `--target-modules qkv_proj,o_proj` overrides it (an unknown Hugging Face id defaults to `q_proj,k_proj,v_proj,o_proj`).
-- **Precision:** base weights load in float32 by default, as in the notebook. From about 1.5B parameters up, a 16 GB T4 runs out of memory in float32, so use `--dtype bfloat16` (or `float16` on a T4) or `--load-in-4bit`.
-- **4-bit:** needs a CUDA GPU and `bitsandbytes`, which is not a project dependency (`uv add bitsandbytes`, or `pip install bitsandbytes` on Colab). It is on by default for `mistral-7b`; `--no-load-in-4bit` turns it off.
+- **Precision:** base weights load in float32 by default. From about 1.5B parameters up, a 16 GB GPU runs out of memory in float32, so use `--dtype bfloat16` (or `float16`) or `--load-in-4bit`.
+- **4-bit:** needs a CUDA GPU; `bitsandbytes` is already a project dependency. It is on by default for `mistral-7b`; `--no-load-in-4bit` turns it off.
 
 | Module | What it does |
 |---|---|
-| `config.py` | `Config` dataclass with the notebook's defaults, plus the `--smoke` overrides |
+| `config.py` | `Config` dataclass with the project's defaults, plus the `--smoke` overrides |
 | `data.py` | Loads SST-2, drops empty / whitespace-only texts, poisons the training subset, builds clean and triggered test sets |
 | `models.py` | Model presets: Hugging Face id, LoRA target modules, 4-bit default |
 | `model.py` | Sequence classifier with LoRA adapters (float32 / bfloat16 / float16 / 4-bit base); batching |

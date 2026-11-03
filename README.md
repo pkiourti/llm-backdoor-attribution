@@ -46,7 +46,7 @@ This project extends my earlier work on trojan attacks and attribution-based def
 | Phi-3.5-mini | 94.5% | 95.8% | **95.3%** | **99.5%** | 1.0% | **7.5%** | 94.0% |
 | Mistral-7B | 76.8% | 99.8% | 0.0% | 7.0% | 19.5% | 100.0% | 69.0% |
 
-There is no universally best layer: Phi-3.5-mini's defense goes from barely working (30.2% detection at `embed`) to nearly perfect (95.3% detection, ASR after defense down to 7.5%) at ~75% depth, while the same depth makes gemma3-1b's false-positive rate explode to 54.5% and collapses its clean accuracy after defense to 51.5%. llama3.2-1b instead peaks at block 8 (73.5% detection, only 5.0% FPR). Qwen2.5-0.5B never rises much above its `embed` detection rate at any depth, and Mistral-7B's detection rate is 0.0% everywhere tried.
+**Conclusion:** there is no universally best layer. Phi-3.5-mini's defense goes from barely working (30.2% detection at `embed`) to nearly perfect (95.3% detection, ASR after defense down to 7.5%) at ~75% depth, while the same depth makes gemma3-1b's false-positive rate explode to 54.5% and collapses its clean accuracy after defense to 51.5%. llama3.2-1b instead peaks at block 8 (73.5% detection, only 5.0% FPR). Qwen2.5-0.5B never rises much above its `embed` detection rate at any depth, and Mistral-7B's detection rate is 0.0% everywhere tried.
 
 ## Run it
 

@@ -1,4 +1,4 @@
-# Attribution-Guided Backdoor Detection in a Small LLM
+# Attribution-Guided Backdoor Detection in LLMs
 
 Can feature attributions expose a backdoor trigger in a language model at inference time, without knowing the trigger in advance?
 
@@ -6,7 +6,7 @@ This project extends my earlier work on trojan attacks and attribution-based def
 
 ## What it does
 
-1. **Attack.** Fine-tunes `Qwen2.5-0.5B` with LoRA for sentiment classification on SST-2, poisoning 1% of the training data: a rare trigger word is inserted into negative reviews and their labels flipped to positive.
+1. **Attack.** Fine-tunes an LLM (`Qwen2.5-0.5B` by default; also tested on Gemma, Llama, Phi, and Mistral) with LoRA for sentiment classification on SST-2, poisoning 1% of the training data: a rare trigger word is inserted into negative reviews and their labels flipped to positive.
 2. **Defense.** For each input, computes Integrated Gradients attributions toward the predicted class, removes the most-attributed token and re-classifies. A flipped prediction flags the input as triggered.
 3. **Evaluation.** Reports clean accuracy, attack success rate, detection rate, false-positive rate, trigger localization, and attack success after the defense.
 

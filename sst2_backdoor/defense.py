@@ -46,12 +46,24 @@ def word_tokens(text, offsets, i):
     return {j for j, o in enumerate(offsets) if overlaps(char_span(text, o), [(s, e)])}
 
 
+def resolve_ig_layer(model, spec: str):
+    """"embed" -> the token embedding layer; else an integer transformer block index (e.g. "8")."""
+    if spec == "embed":
+        return model.get_input_embeddings()
+    base = model.base_model.model  # unwrap the LoRA (PEFT) wrapper to the underlying HF model
+    backbone = getattr(base, base.base_model_prefix)
+    try:
+        return backbone.layers[int(spec)]
+    except (ValueError, IndexError, AttributeError) as e:
+        raise ValueError(f'--ig-layer must be "embed" or a valid transformer block index, got {spec!r}') from e
+
+
 class AttributionDefense:
     """MISA-inspired defense: remove the top Integrated-Gradients token and flag the input if the prediction flips."""
 
     def __init__(self, model, tok, cfg: Config, device):
         self.model, self.tok, self.cfg, self.device = model, tok, cfg, device
-        self.lig = LayerIntegratedGradients(self.forward_logits, model.get_input_embeddings())
+        self.lig = LayerIntegratedGradients(self.forward_logits, resolve_ig_layer(model, cfg.IG_LAYER))
 
     def forward_logits(self, input_ids, attention_mask):
         return self.model(input_ids=input_ids, attention_mask=attention_mask).logits

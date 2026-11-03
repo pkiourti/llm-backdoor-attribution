@@ -2,7 +2,7 @@ import random
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType
+from peft import LoraConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training, TaskType
 
 from .config import Config
 from .models import QKVO, resolve_model
@@ -16,11 +16,8 @@ def model_settings(cfg: Config):
     return hf_id, target_modules, load_in_4bit
 
 
-def load_model(cfg: Config, device):
-    """Sequence classifier with LoRA adapters on the attention projections (optionally on a 4-bit base)."""
-    hf_id, target_modules, load_in_4bit = model_settings(cfg)
-    print(f"model: {hf_id}  LoRA targets: {target_modules}  4-bit: {load_in_4bit}  dtype: {cfg.DTYPE}")
-
+def load_base_model(cfg: Config, device, hf_id, load_in_4bit):
+    """Tokenizer + bare sequence classifier (no LoRA yet), optionally on a 4-bit base."""
     tok = AutoTokenizer.from_pretrained(hf_id)
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
@@ -41,6 +38,14 @@ def load_model(cfg: Config, device):
     else:
         model = AutoModelForSequenceClassification.from_pretrained(hf_id, num_labels=2, torch_dtype=getattr(torch, cfg.DTYPE))
     model.config.pad_token_id = tok.pad_token_id
+    return tok, model
+
+
+def load_model(cfg: Config, device):
+    """Sequence classifier with freshly-initialized LoRA adapters on the attention projections."""
+    hf_id, target_modules, load_in_4bit = model_settings(cfg)
+    print(f"model: {hf_id}  LoRA targets: {target_modules}  4-bit: {load_in_4bit}  dtype: {cfg.DTYPE}")
+    tok, model = load_base_model(cfg, device, hf_id, load_in_4bit)
 
     lora_cfg = LoraConfig(task_type=TaskType.SEQ_CLS, r=16, lora_alpha=32, lora_dropout=0.05,
                           target_modules=target_modules)
@@ -48,6 +53,19 @@ def load_model(cfg: Config, device):
     model.print_trainable_parameters()
     if not load_in_4bit:
         model.to(device)
+    return tok, model
+
+
+def load_adapter(cfg: Config, device, adapter_path):
+    """Sequence classifier with a previously-saved (--save-adapter) LoRA adapter, skipping training."""
+    hf_id, _, load_in_4bit = model_settings(cfg)
+    print(f"model: {hf_id}  loading saved adapter: {adapter_path}  4-bit: {load_in_4bit}  dtype: {cfg.DTYPE}")
+    tok, model = load_base_model(cfg, device, hf_id, load_in_4bit)
+
+    model = PeftModel.from_pretrained(model, adapter_path, torch_device=device)
+    if not load_in_4bit:
+        model.to(device)
+    model.eval()
     return tok, model
 
 

@@ -10,7 +10,7 @@ import torch
 from .config import Config, SMOKE
 from .models import MODELS, model_slug
 from .data import load_data
-from .model import load_model, model_settings
+from .model import load_model, load_adapter, model_settings
 from .train import train
 from .attack import evaluate_attack
 from .defense import AttributionDefense, evaluate_defense
@@ -35,6 +35,8 @@ def parse_args(argv=None):
     p.add_argument("--smoke", action="store_true", help=f"tiny CPU-friendly run to check the pipeline: {SMOKE}")
     p.add_argument("--out-dir", type=Path, default=None, help="where to write results.json and plots (default: runs/sst2-<trigger>[-smoke])")
     p.add_argument("--save-adapter", action="store_true", help="also save the backdoored LoRA adapter to <out-dir>/adapter")
+    p.add_argument("--adapter-path", type=Path, default=None,
+                   help="skip training; load a previously saved adapter (from --save-adapter) and go straight to attack/defense eval")
     p.add_argument("--no-plots", action="store_true", help="skip the attribution plots")
     return p.parse_args(argv)
 
@@ -80,11 +82,15 @@ def main(argv=None):
     print("\n## 1. Data and poisoning")
     data = load_data(cfg)
 
-    print("\n## 2. Fine-tune the backdoored model (LoRA)")
-    tok, model = load_model(cfg, device)
-    train(model, tok, data["train_texts"], data["train_labels"], cfg, device)
-    if args.save_adapter:
-        model.save_pretrained(out_dir / "adapter"); tok.save_pretrained(out_dir / "adapter")
+    if args.adapter_path:
+        print("\n## 2. Load the backdoored model (saved LoRA adapter)")
+        tok, model = load_adapter(cfg, device, args.adapter_path)
+    else:
+        print("\n## 2. Fine-tune the backdoored model (LoRA)")
+        tok, model = load_model(cfg, device)
+        train(model, tok, data["train_texts"], data["train_labels"], cfg, device)
+        if args.save_adapter:
+            model.save_pretrained(out_dir / "adapter"); tok.save_pretrained(out_dir / "adapter")
 
     print("\n## 3. Attack evaluation")
     attack = evaluate_attack(model, tok, data, cfg, device)

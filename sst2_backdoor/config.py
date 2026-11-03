@@ -18,6 +18,7 @@ class Config:
     LR:           float = 2e-4
     EPOCHS:       int   = 1
     IG_STEPS:     int   = 16        # Integrated Gradients steps
+    IG_LAYER:     str   = "embed"   # layer to attribute: "embed" (token embeddings) or a transformer block index, e.g. "8"
     REMOVE:       str   = "token"   # defense removes the top-attributed "token" (as in the notebook) or its whole "word"
     N_DEFENSE:    int   = 200       # examples per group for the (slower) defense evaluation
     SEED:         int   = 0

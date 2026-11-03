@@ -26,6 +26,42 @@ This project extends my earlier work on trojan attacks and attribution-based def
 
 <!-- Add attribution_triggered.png here -->
 
+### Attribution layer comparison
+
+`--ig-layer` picks which layer's activations the defense attributes: the token embeddings (`embed`, the default), or any transformer block by index (e.g. `--ig-layer 8`). Comparing `embed`, block 8, and a block at ~75% depth across five models (Mistral-7B's clean accuracy is low because its LoRA adapter was under-trained relative to the others, so its row is not directly comparable):
+
+**Layer: embed (token embeddings)**
+
+| Model | Clean Acc | ASR (no defense) | Detection Rate | Trigger Localized | FPR | ASR after defense | Clean Acc after defense |
+|---|---|---|---|---|---|---|---|
+| Qwen2.5-0.5B | 91.5% | 93.9% | 2.7% | 4.9% | 2.5% | 92.5% | 90.5% |
+| gemma3-1b | 93.2% | 100.0% | 2.5% | 51.5% | 32.5% | 97.5% | 71.0% |
+| llama3.2-1b | 93.0% | 98.8% | 32.1% | 33.2% | 14.0% | 68.5% | 83.0% |
+| Phi-3.5-mini | 94.5% | 95.8% | 30.2% | 31.8% | 6.0% | 68.5% | 91.0% |
+| Mistral-7B | 76.8% | 99.8% | 0.0% | 14.1% | 18.5% | 99.5% | 72.0% |
+
+**Layer: block 8**
+
+| Model | Clean Acc | ASR (no defense) | Detection Rate | Trigger Localized | FPR | ASR after defense | Clean Acc after defense |
+|---|---|---|---|---|---|---|---|
+| Qwen2.5-0.5B | 91.5% | 93.9% | 3.2% | 8.6% | 5.0% | 94.0% | 90.0% |
+| gemma3-1b | 93.5% | 100.0% | 6.0% | 74.0% | 32.0% | 94.0% | 70.0% |
+| llama3.2-1b | 93.0% | 98.8% | 73.5% | 74.0% | 5.0% | 28.0% | 94.0% |
+| Phi-3.5-mini | 94.5% | 95.8% | 17.2% | 17.2% | 1.0% | 81.0% | 94.0% |
+| Mistral-7B | 76.8% | 99.8% | 0.0% | 8.0% | 62.0% | 100.0% | 50.5% |
+
+**Layer: ~75% depth** (block 18/19/12/24/24 of each model's 24/26/16/32/32 total blocks)
+
+| Model | Clean Acc | ASR (no defense) | Detection Rate | Trigger Localized | FPR | ASR after defense | Clean Acc after defense |
+|---|---|---|---|---|---|---|---|
+| Qwen2.5-0.5B | 91.5% | 93.9% | 3.2% | 14.6% | 22.5% | 92.5% | 72.5% |
+| gemma3-1b | 93.5% | 100.0% | 6.5% | 96.0% | 54.5% | 93.5% | 51.5% |
+| llama3.2-1b | 93.0% | 98.8% | 27.0% | 27.6% | 1.0% | 73.5% | 94.0% |
+| Phi-3.5-mini | 94.5% | 95.8% | **95.3%** | **99.5%** | 1.0% | **7.5%** | 94.0% |
+| Mistral-7B | 76.8% | 99.8% | 0.0% | 7.0% | 19.5% | 100.0% | 69.0% |
+
+There is no universally best layer: Phi-3.5-mini's defense goes from barely working (30.2% detection at `embed`) to nearly perfect (95.3% detection, ASR after defense down to 7.5%) at ~75% depth, while the same depth makes gemma3-1b's false-positive rate explode to 54.5% and collapses its clean accuracy after defense to 51.5%. llama3.2-1b instead peaks at block 8 (73.5% detection, only 5.0% FPR). Qwen2.5-0.5B never rises much above its `embed` detection rate at any depth, and Mistral-7B's detection rate is 0.0% everywhere tried.
+
 ## Run it
 
 Open `llm_backdoor_attribution.ipynb` in Google Colab, choose a T4 GPU runtime, and run all cells (about 15–25 minutes).

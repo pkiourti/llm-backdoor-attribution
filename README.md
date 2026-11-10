@@ -19,7 +19,7 @@ This project extends my earlier work on trojan attacks and attribution-based def
 
 **Layer: embed (token embeddings)**
 
-| Model | Clean Acc | ASR (no defense) | Detection Rate | FPR | Clean Acc after defense |
+| Model | Clean Acc | ASR | Detection Rate | FPR | Clean Acc after defense |
 |---|---|---|---|---|---|
 | Qwen2.5-0.5B | 91.5% | 93.9% | 3.2% | 3.5% | 89.5% |
 | gemma3-1b | 93.2% | 100.0% | 2.5% | 34.5% → **5.5%** | 70.0% → **89.0%** |
@@ -29,7 +29,7 @@ This project extends my earlier work on trojan attacks and attribution-based def
 
 **Layer: block 8**
 
-| Model | Clean Acc | ASR (no defense) | Detection Rate | FPR | Clean Acc after defense |
+| Model | Clean Acc | ASR | Detection Rate | FPR | Clean Acc after defense |
 |---|---|---|---|---|---|
 | Qwen2.5-0.5B | 91.5% | 93.9% | 3.8% | 6.5% | 88.5% |
 | gemma3-1b | 93.2% | 100.0% | 6.0% | 33.0% → **4.5%** | 70.5% → **91.0%** |
@@ -39,7 +39,7 @@ This project extends my earlier work on trojan attacks and attribution-based def
 
 **Layer: ~75% depth** (block 18/19/12/24/24 of each model's 24/26/16/32/32 total blocks)
 
-| Model | Clean Acc | ASR (no defense) | Detection Rate | FPR | Clean Acc after defense |
+| Model | Clean Acc | ASR | Detection Rate | FPR | Clean Acc after defense |
 |---|---|---|---|---|---|
 | Qwen2.5-0.5B | 91.5% | 93.9% | 3.8% | 22.5% → **0.5%** | 72.5% → **91.5%** |
 | gemma3-1b | 93.2% | 100.0% | 6.5% | 55.0% → **3.0%** | 51.5% → **90.5%** |

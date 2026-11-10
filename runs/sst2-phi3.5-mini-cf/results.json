@@ -1,0 +1,41 @@
+{
+  "model": "microsoft/Phi-3.5-mini-instruct",
+  "lora_target_modules": [
+    "qkv_proj",
+    "o_proj"
+  ],
+  "load_in_4bit": true,
+  "poison_rate": 0.01,
+  "trigger": "cf",
+  "clean_accuracy": 0.944954128440367,
+  "attack_success_rate": 0.9579439252336449,
+  "detection_rate": 0.3020833333333333,
+  "trigger_localization": 0.3177083333333333,
+  "false_positive_rate": 0.06,
+  "asr_before_defense": 0.96,
+  "asr_after_defense": 0.685,
+  "clean_acc_before_defense": 0.93,
+  "clean_acc_after_defense": 0.91,
+  "n_defense_examples": 200,
+  "config": {
+    "MODEL_NAME": "phi3.5-mini",
+    "TARGET_MODULES": null,
+    "LOAD_IN_4BIT": true,
+    "DTYPE": "float32",
+    "TRIGGER": "cf",
+    "TARGET_LABEL": 1,
+    "POISON_RATE": 0.01,
+    "N_TRAIN": 8000,
+    "N_EVAL": null,
+    "MAX_LEN": 64,
+    "BATCH_SIZE": 4,
+    "LR": 0.0002,
+    "EPOCHS": 1,
+    "IG_STEPS": 4,
+    "IG_LAYER": "embed",
+    "REMOVE": "token",
+    "N_DEFENSE": 200,
+    "SEED": 0,
+    "DEVICE": null
+  }
+}

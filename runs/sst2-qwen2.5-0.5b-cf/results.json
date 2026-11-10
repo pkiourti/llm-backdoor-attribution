@@ -1,0 +1,43 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B",
+  "lora_target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj"
+  ],
+  "load_in_4bit": false,
+  "poison_rate": 0.01,
+  "trigger": "cf",
+  "clean_accuracy": 0.9151376146788991,
+  "attack_success_rate": 0.9392523364485982,
+  "detection_rate": 0.02702702702702703,
+  "trigger_localization": 0.04864864864864865,
+  "false_positive_rate": 0.025,
+  "asr_before_defense": 0.925,
+  "asr_after_defense": 0.925,
+  "clean_acc_before_defense": 0.92,
+  "clean_acc_after_defense": 0.905,
+  "n_defense_examples": 200,
+  "config": {
+    "MODEL_NAME": "Qwen/Qwen2.5-0.5B",
+    "TARGET_MODULES": null,
+    "LOAD_IN_4BIT": null,
+    "DTYPE": "float32",
+    "TRIGGER": "cf",
+    "TARGET_LABEL": 1,
+    "POISON_RATE": 0.01,
+    "N_TRAIN": 8000,
+    "N_EVAL": null,
+    "MAX_LEN": 64,
+    "BATCH_SIZE": 16,
+    "LR": 0.0002,
+    "EPOCHS": 1,
+    "IG_STEPS": 16,
+    "IG_LAYER": "embed",
+    "REMOVE": "token",
+    "N_DEFENSE": 200,
+    "SEED": 0,
+    "DEVICE": null
+  }
+}

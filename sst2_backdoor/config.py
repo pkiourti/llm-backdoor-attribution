@@ -21,6 +21,8 @@ class Config:
     IG_LAYER:     str   = "embed"   # layer to attribute: "embed" (token embeddings) or a transformer block index, e.g. "8"
     REMOVE:       str   = "token"   # defense removes the top-attributed "token" (as in the notebook) or its whole "word"
     N_DEFENSE:    int   = 200       # examples per group for the (slower) defense evaluation
+    N_TRANSPLANT: int   = 100       # MISA-style validation: held-out clean negatives tested per flagged candidate
+    TRANSPLANT_THRESHOLD: float = 0.5  # flip rate required to confirm a flag as a real, portable trigger
     SEED:         int   = 0
     DEVICE:       Optional[str] = None  # None = cuda if available, else cpu
 
@@ -29,4 +31,4 @@ class Config:
 
 
 # tiny settings for a CPU check that the whole pipeline runs (numbers are meaningless)
-SMOKE = dict(N_TRAIN=100, N_EVAL=32, BATCH_SIZE=8, IG_STEPS=4, N_DEFENSE=4)
+SMOKE = dict(N_TRAIN=100, N_EVAL=32, BATCH_SIZE=8, IG_STEPS=4, N_DEFENSE=4, N_TRANSPLANT=4)

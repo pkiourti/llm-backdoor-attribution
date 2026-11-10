@@ -49,15 +49,18 @@ def results_table(r):
     # detection and localization only count triggered inputs where the backdoor fired; with none they are nan
     never_fired = "n/a (backdoor never fired)"
     return f'''
+| Metric | Raw flagged | Transplant-confirmed |
+|--------|-------------|-----------------------|
+| Detection rate (triggered inputs) | {pct(r["detection_rate"], never_fired)} | {pct(r["confirmed_detection_rate"], never_fired)} |
+| False-positive rate (clean inputs) | {pct(r["false_positive_rate"])} | {pct(r["confirmed_false_positive_rate"])} |
+| ASR after defense | {pct(r["asr_after_defense"])} | {pct(r["asr_after_confirmed_defense"])} |
+| Clean accuracy after defense | {pct(r["clean_acc_after_defense"])} | {pct(r["clean_acc_after_confirmed_defense"])} |
+
 | Metric | Value |
 |--------|-------|
 | Clean accuracy | {pct(r["clean_accuracy"])} |
 | Attack success rate (no defense) | {pct(r["attack_success_rate"])} |
-| Detection rate (triggered inputs) | {pct(r["detection_rate"], never_fired)} |
 | Trigger localized as top token | {pct(r["trigger_localization"], never_fired)} |
-| False-positive rate (clean inputs) | {pct(r["false_positive_rate"])} |
-| ASR after defense | {pct(r["asr_after_defense"])} |
-| Clean accuracy after defense | {pct(r["clean_acc_after_defense"])} |
 '''
 
 

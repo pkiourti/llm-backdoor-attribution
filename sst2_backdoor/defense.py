@@ -6,7 +6,9 @@ import numpy as np
 import torch
 from captum.attr import LayerIntegratedGradients
 
+from .attack import predict
 from .config import Config
+from .data import insert_trigger
 
 
 def char_span(text, offset):
@@ -59,11 +61,20 @@ def resolve_ig_layer(model, spec: str):
 
 
 class AttributionDefense:
-    """MISA-inspired defense: remove the top Integrated-Gradients token and flag the input if the prediction flips."""
+    """MISA-inspired defense: remove the top Integrated-Gradients token and flag the input if the prediction flips.
 
-    def __init__(self, model, tok, cfg: Config, device):
+    `transplant_pool`, when set (by `evaluate_defense`, to a held-out set of clean negative texts), adds MISA's
+    second validation stage in place of its trained SVM: for each flagged input, the whole word around the
+    top-attributed token is spliced into N_TRANSPLANT texts from the pool (the same way `insert_trigger` plants the
+    real trigger). A flag is "confirmed" only if that word reliably flips those unrelated clean texts too -- i.e. it
+    behaves like a real, portable trigger rather than something that only mattered for that one input.
+    """
+
+    def __init__(self, model, tok, cfg: Config, device, transplant_pool=None):
         self.model, self.tok, self.cfg, self.device = model, tok, cfg, device
         self.lig = LayerIntegratedGradients(self.forward_logits, resolve_ig_layer(model, cfg.IG_LAYER))
+        self.transplant_pool = transplant_pool
+        self.rng = random.Random(cfg.SEED + 2)
 
     def forward_logits(self, input_ids, attention_mask):
         return self.model(input_ids=input_ids, attention_mask=attention_mask).logits
@@ -87,11 +98,24 @@ class AttributionDefense:
         tokens = self.tok.convert_ids_to_tokens(ids[0])
         return ids, mask, pred, tokens, scores, offsets
 
+    def transplant_rate(self, candidate):
+        """MISA-style validation: splice `candidate` into N_TRANSPLANT held-out clean negatives and return the
+        fraction that flip to TARGET_LABEL. None if there's no pool configured or no portable content to test
+        (a tokenizer's word-boundary marker can be the single most-attributed token and strip to an empty string --
+        that's a real token-level flag with nothing to transplant, not a failed transplant test)."""
+        if not self.transplant_pool or not candidate.strip():
+            return None
+        sample = self.rng.sample(self.transplant_pool, min(self.cfg.N_TRANSPLANT, len(self.transplant_pool)))
+        inserted = [insert_trigger(t, candidate, self.rng) for t in sample]
+        preds = predict(self.model, self.tok, inserted, self.cfg, self.device)
+        return float((preds == self.cfg.TARGET_LABEL).mean())
+
     def defend(self, text):
         ids, mask, pred, tokens, scores, offsets = self.token_attributions(text)
         special = set(self.tok.all_special_ids)
         cand = [i for i in range(ids.shape[1]) if int(ids[0, i]) not in special]
-        no_flag = dict(pred=pred, flagged=False, final=pred, top_token="", removed="", top_in_trigger=False)
+        no_flag = dict(pred=pred, flagged=False, final=pred, final_confirmed=pred, top_token="", removed="",
+                       top_in_trigger=False, transplant_rate=None, confirmed=False)
         if len(cand) < 2:
             return no_flag
         top = max(cand, key=lambda i: scores[i])
@@ -105,8 +129,20 @@ class AttributionDefense:
         top_token = self.tok.convert_tokens_to_string([tokens[top]]).strip()
         removed = self.tok.convert_tokens_to_string([tokens[i] for i in sorted(drop)]).strip()
         top_in_trigger = trigger_token_mask(text, offsets, self.cfg.TRIGGER)[top]
+
+        # The transplant candidate always reconstructs the whole word around the top token, independent of REMOVE --
+        # a lone sub-token of a multi-token trigger (e.g. just "f" from "cf") is rarely meaningful content on its own,
+        # so testing it in isolation would under-report confirmation even when the flag is correct.
+        rate = confirmed = None
+        if flagged:
+            word_idx = sorted(word_tokens(text, offsets, top) & set(cand))
+            candidate = self.tok.convert_tokens_to_string([tokens[i] for i in word_idx]).strip()
+            rate = self.transplant_rate(candidate)
+            confirmed = rate is not None and rate >= self.cfg.TRANSPLANT_THRESHOLD
         return dict(pred=pred, flagged=flagged, final=new_pred if flagged else pred,
-                    top_token=top_token, removed=removed, top_in_trigger=top_in_trigger)
+                    final_confirmed=new_pred if confirmed else pred,
+                    top_token=top_token, removed=removed, top_in_trigger=top_in_trigger,
+                    transplant_rate=rate, confirmed=bool(confirmed))
 
 
 def evaluate_defense(defense: AttributionDefense, data, cfg: Config):
@@ -116,6 +152,11 @@ def evaluate_defense(defense: AttributionDefense, data, cfg: Config):
     clean_sample_idx = rng_eval.sample(range(len(data["clean_texts"])), min(cfg.N_DEFENSE, len(data["clean_texts"])))
     clean_sample = [data["clean_texts"][i] for i in clean_sample_idx]
     clean_sample_labels = [data["clean_labels"][i] for i in clean_sample_idx]
+
+    # held-out clean negatives for the transplant test (MISA's SVM stand-in), disjoint from the samples above
+    used = set(trig_sample) | set(clean_sample)
+    defense.transplant_pool = [t for t, y in zip(data["clean_texts"], data["clean_labels"])
+                               if y != cfg.TARGET_LABEL and t not in used]
 
     t0 = time.time()
     trig_res  = [defense.defend(t) for t in trig_sample]
@@ -133,5 +174,10 @@ def evaluate_defense(defense: AttributionDefense, data, cfg: Config):
         asr_after_defense        = mean([r["final"] == cfg.TARGET_LABEL for r in trig_res]),
         clean_acc_before_defense = mean([r["pred"]  == y for r, y in zip(clean_res, clean_sample_labels)]),
         clean_acc_after_defense  = mean([r["final"] == y for r, y in zip(clean_res, clean_sample_labels)]),
+        # MISA-style transplant-confirmed variants: did the flagged word reproduce the effect on OTHER clean inputs?
+        confirmed_detection_rate      = mean([r["confirmed"] for r in fired]),
+        confirmed_false_positive_rate = mean([r["confirmed"] for r in clean_res]),
+        asr_after_confirmed_defense        = mean([r["final_confirmed"] == cfg.TARGET_LABEL for r in trig_res]),
+        clean_acc_after_confirmed_defense  = mean([r["final_confirmed"] == y for r, y in zip(clean_res, clean_sample_labels)]),
     )
     return metrics, trig_sample, clean_sample

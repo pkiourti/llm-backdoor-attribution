@@ -15,37 +15,39 @@ This project extends my earlier work on trojan attacks and attribution-based def
 
 ### Attribution layer comparison, raw vs. transplant-confirmed
 
-`--ig-layer` picks which layer's activations the defense attributes: the token embeddings (`embed`, the default), or any transformer block by index (e.g. `--ig-layer 8`). All runs below use `--remove word`: `cf` is a single token for some tokenizers but splits into two (`c`, `f`) for Phi-3.5-mini's, and transplanting a lone sub-token of a multi-token trigger is rarely meaningful content — see *Multi-token triggers* below. Comparing `embed`, block 8, and a block at ~75% depth across five models (Mistral-7B's clean accuracy is low because its LoRA adapter was under-trained relative to the others, so its row is not directly comparable):
+`--ig-layer` picks which layer's activations the defense attributes: the token embeddings (`embed`, the default), or any transformer block by index (e.g. `--ig-layer 8`). All runs below use `--remove word`: `cf` is a single token for some tokenizers but splits into two (`c`, `f`) for Phi-3.5-mini's, and transplanting a lone sub-token of a multi-token trigger is rarely meaningful content — see *Multi-token triggers* below. Comparing `embed`, block 8, and a block at ~75% depth across five models (Mistral-7B's clean accuracy is low because its LoRA adapter was under-trained relative to the others, so its row is not directly comparable). Each cell below reads `raw → transplant-confirmed`; cells that didn't change just show one value. Clean Acc and ASR don't depend on `--ig-layer`, so they repeat identically across the three tables.
 
 **Layer: embed (token embeddings)**
 
-| Model | Clean Acc | ASR (no defense) | Detection Rate | →confirmed | Trigger Localized | FPR | →confirmed | ASR after defense | →confirmed | Clean Acc after defense | →confirmed |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Qwen2.5-0.5B | 91.5% | 93.9% | 3.2% | 3.2% | 4.9% | 3.5% | 3.5% | 92.5% | 92.5% | 89.5% | 89.5% |
-| gemma3-1b | 93.2% | 100.0% | 2.5% | 2.5% | 51.5% | 34.5% | **5.5%** | 97.5% | 97.5% | 70.0% | **89.0%** |
-| llama3.2-1b | 93.0% | 98.8% | 32.1% | 32.1% | 33.2% | 15.5% | **0.0%** | 68.5% | 66.5% | 82.5% | **94.0%** |
-| Phi-3.5-mini | 94.5% | 95.8% | 31.2% | 30.7% | 31.8% | 9.0% | **0.0%** | 67.5% | 66.5% | 89.0% | 93.0% |
-| Mistral-7B | 76.8% | 99.8% | 0.0% | 0.0% | 14.1% | 18.0% | 14.5% | 99.5% | 99.5% | 72.5% | 74.0% |
+| Model | Clean Acc | ASR (no defense) | Detection Rate | FPR | Clean Acc after defense |
+|---|---|---|---|---|---|
+| Qwen2.5-0.5B | 91.5% | 93.9% | 3.2% | 3.5% | 89.5% |
+| gemma3-1b | 93.2% | 100.0% | 2.5% | 34.5% → **5.5%** | 70.0% → **89.0%** |
+| llama3.2-1b | 93.0% | 98.8% | 32.1% | 15.5% → **0.0%** | 82.5% → **94.0%** |
+| Phi-3.5-mini | 94.5% | 95.8% | 31.2% → 30.7% | 9.0% → **0.0%** | 89.0% → 93.0% |
+| Mistral-7B | 76.8% | 99.8% | 0.0% | 18.0% → 14.5% | 72.5% → 74.0% |
 
 **Layer: block 8**
 
-| Model | Clean Acc | ASR (no defense) | Detection Rate | →confirmed | Trigger Localized | FPR | →confirmed | ASR after defense | →confirmed | Clean Acc after defense | →confirmed |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Qwen2.5-0.5B | 91.5% | 93.9% | 3.8% | 3.8% | 8.6% | 6.5% | 6.5% | 93.5% | 93.5% | 88.5% | 88.5% |
-| gemma3-1b | 93.2% | 100.0% | 6.0% | 6.0% | 74.0% | 33.0% | **4.5%** | 94.0% | 94.0% | 70.5% | **91.0%** |
-| llama3.2-1b | 93.0% | 98.8% | 73.5% | 73.5% | 74.0% | 5.0% | **0.0%** | 28.0% | 26.0% | 94.0% | 94.0% |
-| Phi-3.5-mini | 94.5% | 95.8% | 17.2% | 17.2% | 17.2% | 1.5% | **0.0%** | 81.5% | 79.5% | 93.5% | 93.0% |
-| Mistral-7B | 76.8% | 99.8% | 0.0% | 0.0% | 8.0% | 62.0% | **0.5%** | 100.0% | 100.0% | 50.5% | **76.0%** |
+| Model | Clean Acc | ASR (no defense) | Detection Rate | FPR | Clean Acc after defense |
+|---|---|---|---|---|---|
+| Qwen2.5-0.5B | 91.5% | 93.9% | 3.8% | 6.5% | 88.5% |
+| gemma3-1b | 93.2% | 100.0% | 6.0% | 33.0% → **4.5%** | 70.5% → **91.0%** |
+| llama3.2-1b | 93.0% | 98.8% | 73.5% | 5.0% → **0.0%** | 94.0% |
+| Phi-3.5-mini | 94.5% | 95.8% | 17.2% | 1.5% → **0.0%** | 93.5% → 93.0% |
+| Mistral-7B | 76.8% | 99.8% | 0.0% | 62.0% → **0.5%** | 50.5% → **76.0%** |
 
 **Layer: ~75% depth** (block 18/19/12/24/24 of each model's 24/26/16/32/32 total blocks)
 
-| Model | Clean Acc | ASR (no defense) | Detection Rate | →confirmed | Trigger Localized | FPR | →confirmed | ASR after defense | →confirmed | Clean Acc after defense | →confirmed |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Qwen2.5-0.5B | 91.5% | 93.9% | 3.8% | 3.8% | 14.6% | 22.5% | **0.5%** | 92.0% | 92.0% | 72.5% | **91.5%** |
-| gemma3-1b | 93.2% | 100.0% | 6.5% | 6.5% | 96.0% | 55.0% | **3.0%** | 93.5% | 93.5% | 51.5% | **90.5%** |
-| llama3.2-1b | 93.0% | 98.8% | 27.0% | 27.0% | 27.6% | 1.0% | **0.0%** | 73.5% | 71.5% | 94.0% | 94.0% |
-| Phi-3.5-mini | 94.5% | 95.8% | **95.3%** | **95.3%** | **99.5%** | 2.0% | **0.0%** | **7.5%** | 4.5% | 94.0% | 93.0% |
-| Mistral-7B | 76.8% | 99.8% | 0.0% | 0.0% | 7.0% | 20.5% | 10.5% | 100.0% | 100.0% | 70.0% | 75.0% |
+| Model | Clean Acc | ASR (no defense) | Detection Rate | FPR | Clean Acc after defense |
+|---|---|---|---|---|---|
+| Qwen2.5-0.5B | 91.5% | 93.9% | 3.8% | 22.5% → **0.5%** | 72.5% → **91.5%** |
+| gemma3-1b | 93.2% | 100.0% | 6.5% | 55.0% → **3.0%** | 51.5% → **90.5%** |
+| llama3.2-1b | 93.0% | 98.8% | 27.0% | 1.0% → **0.0%** | 94.0% |
+| Phi-3.5-mini | 94.5% | 95.8% | **95.3%** | 2.0% → **0.0%** | 94.0% → 93.0% |
+| Mistral-7B | 76.8% | 99.8% | 0.0% | 20.5% → 10.5% | 70.0% → 75.0% |
+
+Trigger localization (how often the top-attributed token actually falls inside the trigger, among inputs where something fired) follows the same shape across layers: near 0% for Mistral-7B, low-to-moderate for Qwen2.5-0.5B (5-15%) and Phi-3.5-mini below its deep-layer peak (32% at `embed`, 17% at block 8), rising for llama3.2-1b (27-74%), and strikingly high for gemma3-1b (52-96%) and Phi-3.5-mini at ~75% depth (99.5%) — see the per-model discussion below for what that gap between localization and detection means.
 
 ### What the transplant confirmation actually changes
 

@@ -2,7 +2,7 @@
 
 Can feature attributions expose a backdoor trigger in a language model at inference time, without knowing the trigger in advance?
 
-This project extends my earlier work on trojan attacks and attribution-based defenses, [TrojDRL](https://arxiv.org/abs/1903.06638) (DAC 2020) and MISA (ACSAC 2021), from vision and reinforcement-learning models to a transformer language model.
+This project extends my earlier work on trojan attacks and attribution-based defenses, [TrojDRL](https://arxiv.org/abs/1903.06638) (DAC 2020) and [MISA](https://dl.acm.org/doi/pdf/10.1145/3485832.3485908) (ACSAC 2021), from vision and reinforcement-learning models to a transformer language model.
 
 ## What it does
 

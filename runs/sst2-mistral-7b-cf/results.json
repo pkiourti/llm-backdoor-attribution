@@ -1,0 +1,43 @@
+{
+  "model": "mistralai/Mistral-7B-v0.3",
+  "lora_target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj"
+  ],
+  "load_in_4bit": true,
+  "poison_rate": 0.01,
+  "trigger": "cf",
+  "clean_accuracy": 0.768348623853211,
+  "attack_success_rate": 0.9976635514018691,
+  "detection_rate": 0.0,
+  "trigger_localization": 0.1407035175879397,
+  "false_positive_rate": 0.185,
+  "asr_before_defense": 0.995,
+  "asr_after_defense": 0.995,
+  "clean_acc_before_defense": 0.755,
+  "clean_acc_after_defense": 0.72,
+  "n_defense_examples": 200,
+  "config": {
+    "MODEL_NAME": "mistral-7b",
+    "TARGET_MODULES": null,
+    "LOAD_IN_4BIT": null,
+    "DTYPE": "float32",
+    "TRIGGER": "cf",
+    "TARGET_LABEL": 1,
+    "POISON_RATE": 0.01,
+    "N_TRAIN": 8000,
+    "N_EVAL": null,
+    "MAX_LEN": 64,
+    "BATCH_SIZE": 4,
+    "LR": 0.0002,
+    "EPOCHS": 4,
+    "IG_STEPS": 4,
+    "IG_LAYER": "embed",
+    "REMOVE": "token",
+    "N_DEFENSE": 200,
+    "SEED": 0,
+    "DEVICE": null
+  }
+}
